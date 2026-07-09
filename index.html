@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WM-Tipp KI-Analysator</title>
+    <title>WM-Tipp KI-Analysator Live</title>
     <!-- Tailwind CSS für schickes Design -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
@@ -17,16 +17,11 @@
             <p class="text-gray-400 mt-2">Datengestützte Analysen, Kader-Checks & Wettquoten live per KI</p>
         </header>
 
-        <!-- Spiele-Auswahl -->
+        <!-- Spiele-Auswahl (Wird nun dynamisch befüllt) -->
         <div class="max-w-4xl mx-auto bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-8">
             <h2 class="text-xl font-bold mb-4 flex items-center gap-2">📅 Kommende Top-Spiele</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button onclick="ladeAnalyse('match_1')" class="w-full bg-gray-700 hover:bg-gray-600 p-4 rounded-lg text-left transition font-semibold border-l-4 border-yellow-500">
-                    🇩🇪 Deutschland vs. 🇦🇷 Argentinien
-                </button>
-                <button class="w-full bg-gray-700 opacity-50 p-4 rounded-lg text-left font-semibold cursor-not-allowed">
-                    🇫🇷 Frankreich vs. 🇧🇷 Brasilien (Demnächst)
-                </button>
+            <div id="spiele-liste" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <p class="text-gray-400 col-span-2 py-2">⏳ Lade aktuelle Spiele live von der API...</p>
             </div>
         </div>
 
@@ -36,17 +31,17 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <!-- Quoten Box -->
                 <div class="bg-gray-800 p-5 rounded-xl border border-gray-700">
-                    <h3 class="font-bold text-yellow-400 mb-2">📊 Wettquoten (bet365)</h3>
-                    <div class="flex justify-between text-sm mt-3">
-                        <span>Sieg Heim: <strong id="quote-1" class="text-green-400"></strong></span>
-                        <span>X: <strong id="quote-x" class="text-gray-300"></strong></span>
-                        <span>Sieg Gast: <strong id="quote-2" class="text-red-400"></strong></span>
+                    <h3 class="font-bold text-yellow-400 mb-2">📊 Wettquoten</h3>
+                    <div id="quoten-container" class="flex justify-between text-sm mt-3">
+                        <span>Sieg Heim: <strong id="quote-1" class="text-green-400">-</strong></span>
+                        <span>X: <strong id="quote-x" class="text-gray-300">-</strong></span>
+                        <span>Sieg Gast: <strong id="quote-2" class="text-red-400">-</strong></span>
                     </div>
                 </div>
 
                 <!-- Kader Box -->
                 <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 md:col-span-2">
-                    <h3 class="font-bold text-blue-400 mb-2">⚽ Voraussichtliche Top-Spieler</h3>
+                    <h3 class="font-bold text-blue-400 mb-2">⚽ Voraussichtliche Aufstellung</h3>
                     <div class="grid grid-cols-2 text-xs gap-2 mt-2">
                         <div>
                             <span class="underline font-semibold" id="heim-name"></span>: <span id="kader-home" class="text-gray-400"></span>
@@ -74,26 +69,64 @@
 
     <!-- JavaScript Logik zur Verbindung mit dem Backend -->
     <script>
+        // Deine echte Backend-Adresse von Render
+        const BACKEND_URL = "https://ss-wm-tipps.onrender.com";
+
+        // 1. Automatisch die aktuellsten Spiele beim Laden der Webseite abfragen
+        window.onload = async function() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/matches`);
+                const matches = await response.json();
+                
+                const spieleBereich = document.getElementById('spiele-liste');
+                spieleBereich.innerHTML = ""; // Ladetext entfernen
+                
+                if (!matches || matches.length === 0) {
+                    spieleBereich.innerHTML = "<p class='text-gray-400 col-span-2 py-2'>Aktuell stehen keine Live-Spiele an.</p>";
+                    return;
+                }
+
+                // Generiert vollautomatisch Buttons für alle echten anstehenden Partien
+                matches.forEach(spiel => {
+                    spieleBereich.innerHTML += `
+                        <button onclick="ladeAnalyse('${spiel.match_id}')" class="w-full bg-gray-700 hover:bg-gray-600 p-4 rounded-lg text-left transition font-semibold border-l-4 border-yellow-500">
+                            ⚽ ${spiel.home} vs. ${spiel.away}
+                        </button>
+                    `;
+                });
+            } catch (error) {
+                document.getElementById('spiele-liste').innerHTML = "❌ Fehler beim Laden der Live-Spiele. Überprüfe dein Render-Backend.";
+                console.error(error);
+            }
+        };
+
+        // 2. Funktion zum Laden der KI-Analyse für ein gewähltes Spiel
         async function ladeAnalyse(matchId) {
             const bereich = document.getElementById('analyse-bereich');
             const textfeld = document.getElementById('analyse-text');
             
             // Lade-Zustand anzeigen
             bereich.classList.remove('hidden');
-            textfeld.innerHTML = "⏳ Die KI analysiert gerade die aktuellen Kader, Quoten und News... Bitte warten...";
+            textfeld.innerHTML = "⏳ Die KI analysiert gerade die aktuellen Kader, Formkurven und News... Bitte warten...";
 
             try {
-                // Anfrage an unser Python-Backend (läuft lokal auf Port 8000)
-                const response = await fetch(`https://ss-wm-tipps.onrender.com/api/analysis/${matchId}`);
+                const response = await fetch(`${BACKEND_URL}/api/analysis/${matchId}`);
                 const data = await response.json();
 
                 // HTML mit den echten Daten befüllen
                 document.getElementById('heim-name').innerText = data.match_info.home;
                 document.getElementById('gast-name').innerText = data.match_info.away;
                 
-                document.getElementById('quote-1').innerText = data.quoten.bet365["1"];
-                document.getElementById('quote-x').innerText = data.quoten.bet365["X"];
-                document.getElementById('quote-2').innerText = data.quoten.bet365["2"];
+                // Falls Quoten-Struktur vorhanden ist, eintragen, ansonsten Platzhalter ausblenden/ändern
+                if (data.quoten && data.quoten.bet365) {
+                    document.getElementById('quote-1').innerText = data.quoten.bet365["1"] || "-";
+                    document.getElementById('quote-x').innerText = data.quoten.bet365["X"] || "-";
+                    document.getElementById('quote-2').innerText = data.quoten.bet365["2"] || "-";
+                } else {
+                    document.getElementById('quote-1').innerText = "Inkl.";
+                    document.getElementById('quote-x').innerText = "in";
+                    document.getElementById('quote-2').innerText = "KI";
+                }
 
                 document.getElementById('kader-home').innerText = data.kader.home.join(', ');
                 document.getElementById('kader-away').innerText = data.kader.away.join(', ');
@@ -102,7 +135,7 @@
                 textfeld.innerText = data.analyse;
 
             } catch (error) {
-                textfeld.innerHTML = "❌ Fehler beim Laden der Analyse. Läuft dein Python-Backend?";
+                textfeld.innerHTML = "❌ Fehler beim Laden der Analyse. Überprüfe die Logs im Render-Backend.";
                 console.error(error);
             }
         }
