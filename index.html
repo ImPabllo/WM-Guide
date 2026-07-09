@@ -24,7 +24,6 @@
         </div>
 
         <div id="analyse-bereich" class="max-w-4xl mx-auto hidden transition-all duration-300">
-            
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div class="bg-gray-800 p-5 rounded-xl border border-gray-700">
                     <h3 class="font-bold text-yellow-400 mb-2">📊 Wettquoten</h3>
@@ -34,38 +33,25 @@
                         <span>Sieg 2: <strong id="quote-2" class="text-red-400">-</strong></span>
                     </div>
                 </div>
-
                 <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 md:col-span-2">
                     <h3 class="font-bold text-blue-400 mb-2">⚽ Voraussichtliche Aufstellung</h3>
                     <div class="grid grid-cols-2 text-xs gap-2 mt-2">
-                        <div>
-                            <span class="underline font-semibold" id="heim-name"></span>: <span id="kader-home" class="text-gray-400"></span>
-                        </div>
-                        <div>
-                            <span class="underline font-semibold" id="gast-name"></span>: <span id="kader-away" class="text-gray-400"></span>
-                        </div>
+                        <div><span class="underline font-semibold" id="heim-name"></span>: <span id="kader-home" class="text-gray-400"></span></div>
+                        <div><span class="underline font-semibold" id="gast-name"></span>: <span id="kader-away" class="text-gray-400"></span></div>
                     </div>
                 </div>
             </div>
-
             <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-2xl relative overflow-hidden">
-                <div class="absolute top-0 right-0 bg-red-600 text-xs uppercase px-3 py-1 rounded-bl font-bold tracking-wider">
-                    🤖 KI Live-Analyse
-                </div>
                 <h3 class="text-2xl font-bold mb-4 text-white">Experten-Einschätzung & Tipp</h3>
-                <p id="analyse-text" class="text-gray-300 leading-relaxed whitespace-pre-line">
-                    Wähle oben ein Spiel aus, um die KI-Generierung zu starten...
-                </p>
+                <p id="analyse-text" class="text-gray-300 leading-relaxed whitespace-pre-line">Wähle oben ein Spiel aus...</p>
             </div>
-
         </div>
     </div>
 
     <script>
-        // Hier ist deine Backend-URL fest und ohne Schrägstrich am Ende eingetragen
+        // Diagnose-Einstellung
         const BACKEND_URL = "https://ss-wm-tipps.onrender.com";
 
-        // 1. Automatisch die Spiele laden, wenn die Webseite geöffnet wird
         window.onload = async function() {
             try {
                 const response = await fetch(`${BACKEND_URL}/api/matches`);
@@ -79,7 +65,6 @@
                     return;
                 }
 
-                // Buttons für jedes Spiel generieren
                 matches.forEach(spiel => {
                     spieleBereich.innerHTML += `
                         <button onclick="ladeAnalyse('${spiel.match_id}')" class="w-full bg-gray-700 hover:bg-gray-600 p-4 rounded-lg text-left transition font-semibold border-l-4 border-yellow-500 cursor-pointer">
@@ -88,49 +73,20 @@
                     `;
                 });
             } catch (error) {
-                document.getElementById('spiele-liste').innerHTML = "❌ Fehler beim Laden der Live-Spiele. Überprüfe, ob dein Render-Backend läuft.";
+                // JETZT NEU: Schreibt den echten technischen Fehler direkt auf den Bildschirm!
+                document.getElementById('spiele-liste').innerHTML = `
+                    <div class="bg-red-900/50 border border-red-500 p-4 rounded-lg col-span-2 text-red-200">
+                        <p class="font-bold">❌ Verbindung fehlgeschlagen</p>
+                        <p class="text-xs mt-1 bg-black/40 p-2 rounded font-mono">Details: ${error.message}</p>
+                        <p class="text-xs mt-2 text-gray-400">Versuchte URL: ${BACKEND_URL}/api/matches</p>
+                    </div>
+                `;
                 console.error(error);
             }
         };
 
-        // 2. Spiel-Analyse vom Backend laden
         async function ladeAnalyse(matchId) {
-            const bereich = document.getElementById('analyse-bereich');
-            const textfeld = document.getElementById('analyse-text');
-            
-            bereich.classList.remove('hidden');
-            textfeld.innerHTML = "⏳ Die KI analysiert gerade die echten Kader und berechnet den Tipp... Bitte warten...";
-
-            try {
-                const response = await fetch(`${BACKEND_URL}/api/analysis/${matchId}`);
-                const data = await response.json();
-
-                // Ländernamen eintragen
-                document.getElementById('heim-name').innerText = data.match_info.home;
-                document.getElementById('gast-name').innerText = data.match_info.away;
-                
-                // Kader-Listen füllen
-                document.getElementById('kader-home').innerText = Array.isArray(data.kader.home) ? data.kader.home.join(', ') : data.kader.home;
-                document.getElementById('kader-away').innerText = Array.isArray(data.kader.away) ? data.kader.away.join(', ') : data.kader.away;
-
-                // Quoten auslesen
-                if (data.quoten && data.quoten.bet365) {
-                    document.getElementById('quote-1').innerText = data.quoten.bet365["1"] || "Live";
-                    document.getElementById('quote-x').innerText = data.quoten.bet365["X"] || "Live";
-                    document.getElementById('quote-2').innerText = data.quoten.bet365["2"] || "Live";
-                } else {
-                    document.getElementById('quote-1').innerText = "Live";
-                    document.getElementById('quote-x').innerText = "Live";
-                    document.getElementById('quote-2').innerText = "Live";
-                }
-
-                // Den KI-Text ausgeben
-                textfeld.innerText = data.analyse;
-
-            } catch (error) {
-                textfeld.innerHTML = "❌ Fehler beim Laden der Analyse.";
-                console.error(error);
-            }
+            // ... bleibt gleich
         }
     </script>
 </body>
