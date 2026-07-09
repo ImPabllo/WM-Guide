@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WM-Tipp KI-Analysator Live</title>
+    <title>WM-Tipp KI-Analysator Live 2026</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen font-sans">
@@ -19,7 +19,7 @@
         <div class="max-w-4xl mx-auto bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-8">
             <h2 class="text-xl font-bold mb-4 flex items-center gap-2">📅 Kommende Top-Spiele</h2>
             <div id="spiele-liste" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p class="text-gray-400 col-span-2 py-2">⏳ Lade aktuelle Spiele live von der API...</p>
+                <p class="text-gray-400 col-span-2 py-2">⏳ Lade aktuelle WM-Spiele live von der API...</p>
             </div>
         </div>
 
@@ -62,9 +62,10 @@
     </div>
 
     <script>
+        // Hier ist deine Backend-URL fest und ohne Schrägstrich am Ende eingetragen
         const BACKEND_URL = "https://ss-wm-tipps.onrender.com";
 
-        // 1. Spiele beim Laden abrufen
+        // 1. Automatisch die Spiele laden, wenn die Webseite geöffnet wird
         window.onload = async function() {
             try {
                 const response = await fetch(`${BACKEND_URL}/api/matches`);
@@ -74,24 +75,25 @@
                 spieleBereich.innerHTML = ""; 
                 
                 if (!matches || matches.length === 0) {
-                    spieleBereich.innerHTML = "<p class='text-gray-400 col-span-2 py-2'>Aktuell stehen keine Spiele an.</p>";
+                    spieleBereich.innerHTML = "<p class='text-gray-400 col-span-2 py-2'>Aktuell stehen keine Live-Spiele an.</p>";
                     return;
                 }
 
+                // Buttons für jedes Spiel generieren
                 matches.forEach(spiel => {
                     spieleBereich.innerHTML += `
-                        <button onclick="ladeAnalyse('${spiel.match_id}')" class="w-full bg-gray-700 hover:bg-gray-600 p-4 rounded-lg text-left transition font-semibold border-l-4 border-yellow-500">
-                            ⚽ ${spiel.home} vs. ${spiel.away}
+                        <button onclick="ladeAnalyse('${spiel.match_id}')" class="w-full bg-gray-700 hover:bg-gray-600 p-4 rounded-lg text-left transition font-semibold border-l-4 border-yellow-500 cursor-pointer">
+                            ⚽ ${spiel.home} vs. ${spiel.away} <span class="text-xs text-gray-400 block font-normal">${spiel.date}</span>
                         </button>
                     `;
                 });
             } catch (error) {
-                document.getElementById('spiele-liste').innerHTML = "❌ Fehler beim Laden der Live-Spiele.";
+                document.getElementById('spiele-liste').innerHTML = "❌ Fehler beim Laden der Live-Spiele. Überprüfe, ob dein Render-Backend läuft.";
                 console.error(error);
             }
         };
 
-        // 2. Analyse laden
+        // 2. Spiel-Analyse vom Backend laden
         async function ladeAnalyse(matchId) {
             const bereich = document.getElementById('analyse-bereich');
             const textfeld = document.getElementById('analyse-text');
@@ -103,26 +105,26 @@
                 const response = await fetch(`${BACKEND_URL}/api/analysis/${matchId}`);
                 const data = await response.json();
 
-                // Namen eintragen
+                // Ländernamen eintragen
                 document.getElementById('heim-name').innerText = data.match_info.home;
                 document.getElementById('gast-name').innerText = data.match_info.away;
                 
-                // Kader eintragen
+                // Kader-Listen füllen
                 document.getElementById('kader-home').innerText = Array.isArray(data.kader.home) ? data.kader.home.join(', ') : data.kader.home;
                 document.getElementById('kader-away').innerText = Array.isArray(data.kader.away) ? data.kader.away.join(', ') : data.kader.away;
 
-                // Quoten sicher auslesen
+                // Quoten auslesen
                 if (data.quoten && data.quoten.bet365) {
-                    document.getElementById('quote-1').innerText = data.quoten.bet365["1"] || "-";
-                    document.getElementById('quote-x').innerText = data.quoten.bet365["X"] || "-";
-                    document.getElementById('quote-2').innerText = data.quoten.bet365["2"] || "-";
+                    document.getElementById('quote-1').innerText = data.quoten.bet365["1"] || "Live";
+                    document.getElementById('quote-x').innerText = data.quoten.bet365["X"] || "Live";
+                    document.getElementById('quote-2').innerText = data.quoten.bet365["2"] || "Live";
                 } else {
                     document.getElementById('quote-1').innerText = "Live";
                     document.getElementById('quote-x').innerText = "Live";
                     document.getElementById('quote-2').innerText = "Live";
                 }
 
-                // KI-Text einfügen
+                // Den KI-Text ausgeben
                 textfeld.innerText = data.analyse;
 
             } catch (error) {
