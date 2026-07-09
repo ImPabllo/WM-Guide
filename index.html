@@ -33,6 +33,7 @@
                         <span>Sieg 2: <strong id="quote-2" class="text-red-400">-</strong></span>
                     </div>
                 </div>
+
                 <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 md:col-span-2">
                     <h3 class="font-bold text-blue-400 mb-2">⚽ Voraussichtliche Aufstellung</h3>
                     <div class="grid grid-cols-2 text-xs gap-2 mt-2">
@@ -41,6 +42,7 @@
                     </div>
                 </div>
             </div>
+
             <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-2xl relative overflow-hidden">
                 <h3 class="text-2xl font-bold mb-4 text-white">Experten-Einschätzung & Tipp</h3>
                 <p id="analyse-text" class="text-gray-300 leading-relaxed whitespace-pre-line">Wähle oben ein Spiel aus...</p>
@@ -49,7 +51,7 @@
     </div>
 
     <script>
-        // Diagnose-Einstellung
+        // HIER IST DIE URL JETZT EXAKT AUF DEIN BACKEND (WM-Guide-1) EINGESTELLT
         const BACKEND_URL = "https://wm-guide-1.onrender.com";
 
         window.onload = async function() {
@@ -73,7 +75,6 @@
                     `;
                 });
             } catch (error) {
-                // JETZT NEU: Schreibt den echten technischen Fehler direkt auf den Bildschirm!
                 document.getElementById('spiele-liste').innerHTML = `
                     <div class="bg-red-900/50 border border-red-500 p-4 rounded-lg col-span-2 text-red-200">
                         <p class="font-bold">❌ Verbindung fehlgeschlagen</p>
@@ -86,7 +87,33 @@
         };
 
         async function ladeAnalyse(matchId) {
-            // ... bleibt gleich
+            const bereich = document.getElementById('analyse-bereich');
+            const textfeld = document.getElementById('analyse-text');
+            bereich.classList.remove('hidden');
+            textfeld.innerHTML = "⏳ Die KI analysiert gerade... Bitte warten...";
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/analysis/${matchId}`);
+                const data = await response.json();
+
+                document.getElementById('heim-name').innerText = data.match_info.home;
+                document.getElementById('gast-name').innerText = data.match_info.away;
+                document.getElementById('kader-home').innerText = Array.isArray(data.kader.home) ? data.kader.home.join(', ') : data.kader.home;
+                document.getElementById('kader-away').innerText = Array.isArray(data.kader.away) ? data.kader.away.join(', ') : data.kader.away;
+
+                if (data.quoten && data.quoten.bet365) {
+                    document.getElementById('quote-1').innerText = data.quoten.bet365["1"] || "Live";
+                    document.getElementById('quote-x').innerText = data.quoten.bet365["X"] || "Live";
+                    document.getElementById('quote-2').innerText = data.quoten.bet365["2"] || "Live";
+                } else {
+                    document.getElementById('quote-1').innerText = "Live";
+                    document.getElementById('quote-x').innerText = "Live";
+                    document.getElementById('quote-2').innerText = "Live";
+                }
+                textfeld.innerText = data.analyse;
+            } catch (error) {
+                textfeld.innerHTML = "❌ Fehler beim Laden der Analyse.";
+            }
         }
     </script>
 </body>
